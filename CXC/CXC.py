@@ -1,4 +1,5 @@
 import os
+import signal
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +13,11 @@ AGENT_ID = os.getenv("AGENT_ID")
 API_KEY = os.getenv("API_KEY")
 
 user_name = "Mikel"
-schedule = "Interview for Events Officer at 3:00; Exchange Scholarship Briefing at 3:45; From Pixels to Principles at 7:30 pm"
+schedule = (
+    "Interview for Events Officer at 3:00;"
+    "Exchange Scholarship Briefing at 3:45;"
+    "From Pixels to Principles at 7:30 pm"
+)
 prompt = f"You are a helpful assistant. Your interlocutor has the following schedule: {schedule}."
 first_message = f"Hello {user_name}, how can I help you today?"
 
@@ -62,4 +67,13 @@ conversation = Conversation(
     callback_user_transcript=print_user_transcript,
 )
 
+def _handle_sigint(sig, frame):
+    # Cleanly end the session on Ctrl+C
+    conversation.end_session()
+
+signal.signal(signal.SIGINT, _handle_sigint)
+
 conversation.start_session()
+
+conversation_id = conversation.wait_for_session_end()
+print(f"Conversation ID: {conversation_id}")
