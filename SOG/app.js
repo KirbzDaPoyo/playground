@@ -11,6 +11,7 @@ const pitchSlider = document.getElementById("pitch-slider");
 const speedValue = document.getElementById("speed-value");
 const pitchValue = document.getElementById("pitch-value");
 const speakBtn = document.getElementById("speak-btn");
+const pauseBtn = document.getElementById("pause-btn");
 const stopBtn = document.getElementById("stop-btn");
 const charCount = document.getElementById("char-count");
 const status = document.getElementById("status");
@@ -49,6 +50,12 @@ function updateCharCount() {
   charCount.textContent = count;
 }
 
+// Update speed and pitch labels when sliders change
+function updateSliderLabels() {
+  speedValue.textContent = Number(speedSlider.value).toFixed(1);
+  pitchValue.textContent = Number(pitchSlider.value).toFixed(1);
+}
+
 // The main speak() function that converts text to speech
 function speak() {
   const text = textInput.value.trim();
@@ -77,18 +84,29 @@ function speak() {
     statusText.textContent = "Speaking...";
     speakBtn.disabled = true;
     stopBtn.disabled = false;
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = "⏸️ Pause";
+    status.classList.remove("paused");
+
   };
   utterance.onend = () => {
     status.classList.remove("speaking");
     statusText.textContent = "Ready";
     speakBtn.disabled = false;
     stopBtn.disabled = true;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = "⏸️ Pause";
+    status.classList.remove("paused");
+
   };
   utterance.onerror = (event) => {
     console.error("Speech synthesis error:", event);
     statusText.textContent = "Error occurred.";
     speakBtn.disabled = false;
     stopBtn.disabled = true;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = "⏸️ Pause";
+    status.classList.remove("paused");
   };
 
   // Cancel any ongoing speech and start new
@@ -99,6 +117,23 @@ function speak() {
   synth.speak(utterance);
 }
 
+// Pause/resume the current utterance (useful for long texts)
+function togglePause() {
+  if (!synth.speaking) return;
+
+  if (synth.paused) {
+    synth.resume();
+    status.classList.remove("paused");
+    statusText.textContent = "Speaking...";
+    pauseBtn.textContent = "⏸️ Pause";
+  } else {
+    synth.pause();
+    status.classList.add("paused");
+    statusText.textContent = "Paused";
+    pauseBtn.textContent = "▶️ Resume";
+  }
+}
+
 // Stop speaking and cancel any ongoing speech
 function stop() {
   synth.cancel();
@@ -106,6 +141,10 @@ function stop() {
   statusText.textContent = "Stopped";
   speakBtn.disabled = false;
   stopBtn.disabled = true;
+  pauseBtn.disabled = true;
+  pauseBtn.textContent = "⏸️ Pause";
+  status.classList.remove("paused");
+
 }
 
 // Initialize the app
@@ -120,6 +159,14 @@ function init() {
 
   updateCharCount();
   stopBtn.disabled = true;
+
+  pauseBtn.addEventListener("click", togglePause);
+  pauseBtn.disabled = true;
+  pauseBtn.textContent = "⏸️ Pause";
+
+  speedSlider.addEventListener("input", updateSliderLabels);
+  pitchSlider.addEventListener("input", updateSliderLabels);
+  updateSliderLabels();
 }
 
 // Initialize when DOM is ready

@@ -7,6 +7,7 @@
   --primary-color: #4ade80;
   --primary-hover: #22c55e;
   --success-color: #10b981;
+  --warning-color: #f59e0b;
   --background: #0f172a;
   --surface: #1e293b;
   --surface-light: #334155;
@@ -246,6 +247,12 @@ input[type="range"]::-moz-range-thumb {
 
 .status.speaking .status-dot {
   background: var(--primary-color);
+}
+
+.status.paused .status-dot {
+  background: var(--warning-color);
+  animation: none;
+  opacity: 1;
 }
 
 @keyframes pulse {
