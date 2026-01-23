@@ -16,10 +16,67 @@ const stopBtn = document.getElementById("stop-btn");
 const charCount = document.getElementById("char-count");
 const status = document.getElementById("status");
 const statusText = document.getElementById("status-text");
+const highlightOutput = document.getElementById("highlight-output");
 
 // Web Speech API
 const synth = window.speechSynthesis;
 let voices = [];
+let spokenTextSnapshot = "";
+let lastBoundaryIndex = -1;
+let activeUtteranceToken = 0; // invalidates old callbacks on cancel/restart
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderPlainPreview(text) {
+  if (!highlightOutput) return;
+  highlightOutput.textContent = text;
+}
+
+function guessWordRange(text, start) {
+  const len = text.length;
+  let s = Math.max(0, Math.min(start, len));
+
+  while (s < len && /\s/.test(text[s])) s += 1; // skip whitespace
+  let e = s;
+  while (e < len && !/\s/.test(text[e])) e += 1;
+
+  return { start: s, end: e };
+}
+
+function renderHighlightRange(text, start, end) {
+  if (!highlightOutput) return;
+
+  const len = text.length;
+  const s = Math.max(0, Math.min(start, len));
+  const e = Math.max(s, Math.min(end, len));
+
+  const before = escapeHtml(text.slice(0, s));
+  const mid = escapeHtml(text.slice(s, e));
+  const after = escapeHtml(text.slice(e));
+
+  if (!mid) {
+    highlightOutput.textContent = text;
+    return;
+  }
+
+  highlightOutput.innerHTML = `${before}<mark class="spoken-word">${mid}</mark>${after}`;
+
+  const markEl = highlightOutput.querySelector("mark.spoken-word");
+  if (markEl) markEl.scrollIntoView({ block: "nearest" });
+}
+
+function resetHighlightToCurrentText() {
+  spokenTextSnapshot = "";
+  lastBoundaryIndex = -1;
+  renderPlainPreview(textInput.value);
+}
 
 // Get voices from the browser and populate the dropdown
 function loadVoices() {
@@ -48,6 +105,11 @@ function loadVoices() {
 function updateCharCount() {
   const count = textInput.value.length;
   charCount.textContent = count;
+
+  // Only live-sync the preview when not actively speaking/paused
+  if (!synth.speaking && !synth.paused) {
+    renderPlainPreview(textInput.value);
+  }
 }
 
 // Update speed and pitch labels when sliders change
@@ -78,6 +140,35 @@ function speak() {
   utterance.pitch = parseFloat(pitchSlider.value);
   utterance.volume = 1.0;
 
+  const utteranceToken = ++activeUtteranceToken;
+  spokenTextSnapshot = text;
+  lastBoundaryIndex = -1;
+  renderPlainPreview(spokenTextSnapshot);
+
+  utterance.onboundary = (event) => {
+    if (utteranceToken !== activeUtteranceToken) return;
+
+    if (event.name && event.name !== "word") return;
+    if (typeof event.charIndex !== "number") return;
+
+    const idx = event.charIndex;
+    if (idx === lastBoundaryIndex) return;
+    lastBoundaryIndex = idx;
+
+    let start = idx;
+    let end = idx;
+    
+    if (typeof event.charLength === "number" && event.charLength > 0) {
+      end = idx + event.charLength;
+    } else {
+      const range = guessWordRange(spokenTextSnapshot, idx);
+      start = range.start;
+      end = range.end;
+    }
+
+    renderHighlightRange(spokenTextSnapshot, start, end);
+  };
+
   // Event handlers
   utterance.onstart = () => {
     status.classList.add("speaking");
@@ -97,7 +188,7 @@ function speak() {
     pauseBtn.disabled = true;
     pauseBtn.textContent = "⏸️ Pause";
     status.classList.remove("paused");
-
+    resetHighlightToCurrentText();
   };
   utterance.onerror = (event) => {
     console.error("Speech synthesis error:", event);
@@ -107,6 +198,7 @@ function speak() {
     pauseBtn.disabled = true;
     pauseBtn.textContent = "⏸️ Pause";
     status.classList.remove("paused");
+    resetHighlightToCurrentText();
   };
 
   // Cancel any ongoing speech and start new
@@ -137,6 +229,8 @@ function togglePause() {
 // Stop speaking and cancel any ongoing speech
 function stop() {
   synth.cancel();
+  activeUtteranceToken += 1; // invalidate any pending boundary/end callbacks
+  resetHighlightToCurrentText();
   status.classList.remove("speaking");
   statusText.textContent = "Stopped";
   speakBtn.disabled = false;
@@ -167,6 +261,7 @@ function init() {
   speedSlider.addEventListener("input", updateSliderLabels);
   pitchSlider.addEventListener("input", updateSliderLabels);
   updateSliderLabels();
+  renderPlainPreview(textInput.value);
 }
 
 // Initialize when DOM is ready

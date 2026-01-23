@@ -140,6 +140,30 @@ select:focus {
   border-color: var(--primary-color);
 }
 
+/* Live Highlight Preview */
+.highlight-output {
+  width: 100%;
+  background: var(--background);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 6rem;
+  max-height: 16rem;
+  overflow: auto;
+}
+
+mark.spoken-word {
+  background: rgba(74, 222, 128, 0.25);
+  color: var(--text-primary);
+  padding: 0 0.15em;
+  border-radius: 4px;
+}
+
 /* Controls Grid */
 .controls-grid {
   display: grid;
