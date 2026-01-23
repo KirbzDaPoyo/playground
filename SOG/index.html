@@ -98,6 +98,49 @@
         <button id="stop-btn" class="btn-secondary">⏹️ Stop</button>
       </div>
 
+      <!-- Project Library -->
+      <div class="card">
+        <div class="project-header">
+          <strong>Project Library</strong>
+          <span class="project-hint">Save scripts + settings for later</span>
+        </div>
+
+        <div class="project-grid">
+          <div class="control-group">
+            <label for="project-title">Title</label>
+            <input id="project-title" type="text" placeholder="e.g., Sera's Confession" />
+          </div>
+
+          <div class="control-group">
+            <label for="project-tags">Tags</label>
+            <input id="project-tags" type="text" placeholder="comma-separated (e.g., rehearsal, jp, study)" />
+          </div>
+        </div>
+
+        <div class="project-actions">
+          <button id="new-project-btn" class="btn-secondary" type="button">🧾 New</button>
+          <button id="save-project-btn" class="btn-primary" type="button">💾 Save</button>
+          <button id="delete-project-btn" class="btn-secondary" type="button" disabled>🗑️ Delete</button>
+        </div>
+
+        <div class="project-grid">
+          <div class="control-group">
+            <label for="project-search">Search</label>
+            <input id="project-search" type="text" placeholder="filter by title or tag..." />
+          </div>
+
+          <div class="control-group">
+            <label for="project-select">Load</label>
+            <select id="project-select">
+              <option value="">No saved projects yet</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="project-tags-preview" class="tag-row" aria-live="polite"></div>
+        <div id="project-meta" class="project-meta"></div>
+      </div>
+
       <!-- Status Indicator -->
       <div id="status" class="status">
         <span class="status-dot"></span>

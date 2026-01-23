@@ -17,6 +17,15 @@ const charCount = document.getElementById("char-count");
 const status = document.getElementById("status");
 const statusText = document.getElementById("status-text");
 const highlightOutput = document.getElementById("highlight-output");
+const projectTitle = document.getElementById("project-title");
+const projectTags = document.getElementById("project-tags");
+const newProjectBtn = document.getElementById("new-project-btn");
+const saveProjectBtn = document.getElementById("save-project-btn");
+const deleteProjectBtn = document.getElementById("delete-project-btn");
+const projectSelect = document.getElementById("project-select");
+const projectSearch = document.getElementById("project-search");
+const projectTagsPreview = document.getElementById("project-tags-preview");
+const projectMeta = document.getElementById("project-meta");
 
 // Web Speech API
 const synth = window.speechSynthesis;
@@ -25,6 +34,18 @@ let spokenTextSnapshot = "";
 let lastBoundaryIndex = -1;
 let activeUtteranceToken = 0; // invalidates old callbacks on cancel/restart
 
+const PROJECTS_KEY = "tts_projects_v1";
+let projects = [];
+let activeProjectId = null;
+
+// If voices load later, we can apply the saved voice once available
+let pendingVoiceMeta = null;
+
+// ========================================
+// Text Highlighting Utilities
+// ========================================
+
+// Utility to escape HTML special characters
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -34,11 +55,13 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+// Render plain text preview without highlights
 function renderPlainPreview(text) {
   if (!highlightOutput) return;
   highlightOutput.textContent = text;
 }
 
+// Guess word boundaries around a given index
 function guessWordRange(text, start) {
   const len = text.length;
   let s = Math.max(0, Math.min(start, len));
@@ -50,6 +73,7 @@ function guessWordRange(text, start) {
   return { start: s, end: e };
 }
 
+// Render highlighted text range
 function renderHighlightRange(text, start, end) {
   if (!highlightOutput) return;
 
@@ -72,11 +96,220 @@ function renderHighlightRange(text, start, end) {
   if (markEl) markEl.scrollIntoView({ block: "nearest" });
 }
 
+// Reset highlights to match current text input
 function resetHighlightToCurrentText() {
   spokenTextSnapshot = "";
   lastBoundaryIndex = -1;
   renderPlainPreview(textInput.value);
 }
+
+// ========================================
+// Project Management
+// ========================================
+
+// Load projects from localStorage
+function loadProjectsFromStorage() {
+  try {
+    projects = JSON.parse(localStorage.getItem(PROJECTS_KEY) || "[]");
+    if (!Array.isArray(projects)) projects = [];
+  } catch {
+    projects = [];
+  }
+}
+
+// Save projects to localStorage
+function saveProjectsToStorage() {
+  localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+}
+
+// Normalize tags input into an array
+function normalizeTags(input) {
+  return input
+    .split(",")
+    .map(t => t.trim())
+    .filter(Boolean)
+    .slice(0, 20); // keep it sane
+}
+
+// Render tag chips in the UI
+function renderTagChips(tags) {
+  if (!projectTagsPreview) return;
+  projectTagsPreview.innerHTML = "";
+  tags.forEach(tag => {
+    const chip = document.createElement("span");
+    chip.className = "tag-chip";
+    chip.textContent = tag;
+    projectTagsPreview.appendChild(chip);
+  });
+}
+
+// Format timestamp to readable string
+function formatDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleString();
+}
+
+// Get voice metadata from current selection
+function getVoiceMetaFromSelection() {
+  const idx = voiceSelect.value;
+  const v = idx !== "" ? voices[idx] : null;
+  return v ? { name: v.name, lang: v.lang } : null;
+}
+
+// Apply voice metadata to selection if available
+function applyVoiceMeta(meta) {
+  if (!meta || voices.length === 0) return false;
+
+  const foundIndex = voices.findIndex(v => v.name === meta.name && v.lang === meta.lang);
+  if (foundIndex >= 0) {
+    voiceSelect.value = String(foundIndex);
+    return true;
+  }
+  return false;
+}
+
+// Refresh the project selection dropdown based on filter
+function refreshProjectSelect(filterText = "") {
+  if (!projectSelect) return;
+
+  const q = filterText.trim().toLowerCase();
+  const filtered = q
+    ? projects.filter(p => {
+        const hay = `${p.title} ${(p.tags || []).join(" ")}`.toLowerCase();
+        return hay.includes(q);
+      })
+    : projects;
+
+  projectSelect.innerHTML = "";
+
+  if (filtered.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = q ? "No matches" : "No saved projects yet";
+    projectSelect.appendChild(opt);
+    return;
+  }
+
+  // newest first
+  filtered
+    .slice()
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      const tagSuffix = p.tags?.length ? ` [${p.tags.join(", ")}]` : "";
+      opt.textContent = `${p.title || "Untitled"}${tagSuffix}`;
+      projectSelect.appendChild(opt);
+    });
+
+  // keep current selection visible if possible
+  if (activeProjectId && filtered.some(p => p.id === activeProjectId)) {
+    projectSelect.value = activeProjectId;
+  }
+}
+
+// Set the active project in the UI
+function setActiveProjectUI(project) {
+  if (!projectTitle || !projectTags) return;
+
+  if (!project) {
+    activeProjectId = null;
+    projectTitle.value = "";
+    projectTags.value = "";
+    renderTagChips([]);
+    if (projectMeta) projectMeta.textContent = "";
+    if (deleteProjectBtn) deleteProjectBtn.disabled = true;
+    if (projectSelect) projectSelect.value = "";
+    return;
+  }
+
+  activeProjectId = project.id;
+  projectTitle.value = project.title || "";
+  projectTags.value = (project.tags || []).join(", ");
+  renderTagChips(project.tags || []);
+
+  if (projectMeta) {
+    projectMeta.textContent =
+      `Last saved: ${formatDate(project.updatedAt)} • ` +
+      `Voice: ${project.voice?.name ? `${project.voice.name} (${project.voice.lang})` : "Default"} • ` +
+      `Speed: ${Number(project.speed).toFixed(1)}x • Pitch: ${Number(project.pitch).toFixed(1)}`;
+  }
+
+  if (deleteProjectBtn) deleteProjectBtn.disabled = false;
+}
+
+// Create a new project (clears current)
+function newProject() {
+  setActiveProjectUI(null);
+}
+
+// Save the current project
+function saveProject() {
+  const title = (projectTitle?.value || "").trim() || "Untitled";
+  const tags = normalizeTags(projectTags?.value || "");
+  const now = Date.now();
+
+  const payload = {
+    id: activeProjectId || String(now),
+    title,
+    tags,
+    text: textInput.value,
+    speed: Number(speedSlider.value),
+    pitch: Number(pitchSlider.value),
+    voice: getVoiceMetaFromSelection(),
+    updatedAt: now,
+    createdAt: activeProjectId
+      ? (projects.find(p => p.id === activeProjectId)?.createdAt || now)
+      : now,
+  };
+
+  const idx = projects.findIndex(p => p.id === payload.id);
+  if (idx >= 0) projects[idx] = payload;
+  else projects.push(payload);
+
+  saveProjectsToStorage();
+  setActiveProjectUI(payload);
+  refreshProjectSelect(projectSearch?.value || "");
+}
+
+// Load a project by its ID
+function loadProjectById(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+
+  // stop any speaking so we don't fight state
+  if (synth.speaking) synth.cancel();
+
+  textInput.value = p.text || "";
+  speedSlider.value = String(p.speed ?? 1);
+  pitchSlider.value = String(p.pitch ?? 1);
+  updateSliderLabels?.();
+  updateCharCount?.();
+
+  // voice may not exist until voices load
+  if (!applyVoiceMeta(p.voice)) {
+    pendingVoiceMeta = p.voice;
+  }
+
+  setActiveProjectUI(p);
+}
+
+// Delete the active project
+function deleteActiveProject() {
+  if (!activeProjectId) return;
+
+  projects = projects.filter(p => p.id !== activeProjectId);
+  saveProjectsToStorage();
+
+  activeProjectId = null;
+  setActiveProjectUI(null);
+  refreshProjectSelect(projectSearch?.value || "");
+}
+
+// ========================================
+// Text-to-Speech Functionality
+// ========================================
 
 // Get voices from the browser and populate the dropdown
 function loadVoices() {
@@ -87,7 +320,6 @@ function loadVoices() {
   }
 
   // Clear existing options
-  const voiceSelect = document.getElementById("voice-select");
   voiceSelect.innerHTML = "";
 
   // Populate dropdown with voices
@@ -99,6 +331,11 @@ function loadVoices() {
   });
 
   console.log(`Loaded ${voices.length} voice.`);
+
+  // Apply any pending voice selection once voices become available
+  if (pendingVoiceMeta) {
+    if (applyVoiceMeta(pendingVoiceMeta)) pendingVoiceMeta = null;
+  }
 }
 
 // Show how many characters the user has typed
@@ -262,6 +499,27 @@ function init() {
   pitchSlider.addEventListener("input", updateSliderLabels);
   updateSliderLabels();
   renderPlainPreview(textInput.value);
+
+  // Project library init
+  loadProjectsFromStorage();
+  refreshProjectSelect("");
+
+  newProjectBtn.addEventListener("click", newProject);
+  saveProjectBtn.addEventListener("click", saveProject);
+  deleteProjectBtn.addEventListener("click", deleteActiveProject);
+
+  projectSelect.addEventListener("change", () => {
+    const id = projectSelect.value;
+    if (id) loadProjectById(id);
+  });
+
+  projectSearch.addEventListener("input", () => {
+    refreshProjectSelect(projectSearch.value);
+  });
+
+  projectTags.addEventListener("input", () => {
+    renderTagChips(normalizeTags(projectTags.value));
+  });
 }
 
 // Initialize when DOM is ready
