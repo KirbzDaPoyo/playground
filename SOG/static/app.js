@@ -13,6 +13,10 @@ const pitchValue = document.getElementById("pitch-value");
 const speakBtn = document.getElementById("speak-btn");
 const pauseBtn = document.getElementById("pause-btn");
 const stopBtn = document.getElementById("stop-btn");
+const stickyControls = document.getElementById("sticky-controls");
+const stickyLabel = document.getElementById("sticky-label");
+const stickyPause = document.getElementById("sticky-pause");
+const stickyStop = document.getElementById("sticky-stop");
 const charCount = document.getElementById("char-count");
 const status = document.getElementById("status");
 const statusText = document.getElementById("status-text");
@@ -110,9 +114,6 @@ function renderHighlightRange(text, start, end) {
   }
 
   highlightOutput.innerHTML = `${before}<mark class="spoken-word">${mid}</mark>${after}`;
-
-  const markEl = highlightOutput.querySelector("mark.spoken-word");
-  if (markEl) markEl.scrollIntoView({ block: "nearest" });
 }
 
 // Reset highlights to match current text input
@@ -488,6 +489,7 @@ function speakText(text, { onEnd } = {}) {
     pauseBtn.disabled = false;
     pauseBtn.textContent = "⏸️ Pause";
     status.classList.remove("paused");
+    syncStickyControls();
   };
 
   utterance.onend = () => {
@@ -500,6 +502,7 @@ function speakText(text, { onEnd } = {}) {
     status.classList.remove("paused");
     resetHighlightToCurrentText();
     if (typeof onEnd === "function") onEnd();
+    syncStickyControls();
   };
 
   utterance.onerror = (event) => {
@@ -513,6 +516,7 @@ function speakText(text, { onEnd } = {}) {
     resetHighlightToCurrentText();
     // stop queue on error
     if (queueActive) stopQueue();
+    syncStickyControls();
   };
 
   if (synth.speaking) synth.cancel();
@@ -561,6 +565,7 @@ function stopQueue() {
   activeUtteranceToken += 1;
   resetHighlightToCurrentText();
   updateQueueUI();
+  syncStickyControls();
 }
 
 // Navigate to previous chunk
@@ -689,7 +694,7 @@ function speak() {
     pauseBtn.disabled = false;
     pauseBtn.textContent = "⏸️ Pause";
     status.classList.remove("paused");
-
+    syncStickyControls();
   };
   utterance.onend = () => {
     status.classList.remove("speaking");
@@ -700,6 +705,7 @@ function speak() {
     pauseBtn.textContent = "⏸️ Pause";
     status.classList.remove("paused");
     resetHighlightToCurrentText();
+    syncStickyControls();
   };
   utterance.onerror = (event) => {
     console.error("Speech synthesis error:", event);
@@ -710,6 +716,7 @@ function speak() {
     pauseBtn.textContent = "⏸️ Pause";
     status.classList.remove("paused");
     resetHighlightToCurrentText();
+    syncStickyControls();
   };
 
   // Cancel any ongoing speech and start new
@@ -720,7 +727,7 @@ function speak() {
   synth.speak(utterance);
 }
 
-// Pause/resume the current utterance (useful for long texts)
+// Pause/resume the current utterance
 function togglePause() {
   if (!synth.speaking) return;
 
@@ -735,6 +742,8 @@ function togglePause() {
     statusText.textContent = "Paused";
     pauseBtn.textContent = "▶️ Resume";
   }
+
+  syncStickyControls();
 }
 
 // Stop speaking and cancel any ongoing speech
@@ -750,7 +759,23 @@ function stop() {
   pauseBtn.disabled = true;
   pauseBtn.textContent = "⏸️ Pause";
   status.classList.remove("paused");
+  syncStickyControls();
+}
 
+// Sync sticky controls with main controls
+function syncStickyControls() {
+  if (!stickyControls || !stickyLabel || !stickyPause || !stickyStop) return;
+
+  const active = synth.speaking || synth.paused;
+
+  stickyControls.classList.toggle("hidden", !active);
+
+  stickyLabel.textContent = statusText.textContent;
+
+  stickyPause.disabled = !active;
+  stickyStop.disabled = !active;
+
+  stickyPause.textContent = pauseBtn.textContent;
 }
 
 // Export audio using ElevenLabs TTS API
@@ -818,6 +843,11 @@ function init() {
   pauseBtn.addEventListener("click", togglePause);
   pauseBtn.disabled = true;
   pauseBtn.textContent = "⏸️ Pause";
+
+  if (stickyPause) stickyPause.addEventListener("click", togglePause);
+  if (stickyStop) stickyStop.addEventListener("click", stop);
+
+  syncStickyControls();
 
   speedSlider.addEventListener("input", updateSliderLabels);
   pitchSlider.addEventListener("input", updateSliderLabels);

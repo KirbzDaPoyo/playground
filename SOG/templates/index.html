@@ -91,6 +91,13 @@
         </div>
       </div>
       
+      <!-- Action Buttons -->
+      <div class="button-group">
+        <button id="speak-btn" class="btn-primary">🔊 Speak</button>
+        <button id="pause-btn" class="btn-secondary" disabled>⏸️ Pause</button>
+        <button id="stop-btn" class="btn-secondary">⏹️ Stop</button>
+      </div>
+
       <!-- Queue + Chapters -->
       <div class="card">
         <div class="project-header">
@@ -125,13 +132,6 @@
         </div>
 
         <div id="queue-status" class="project-meta"></div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="button-group">
-        <button id="speak-btn" class="btn-primary">🔊 Speak</button>
-        <button id="pause-btn" class="btn-secondary" disabled>⏸️ Pause</button>
-        <button id="stop-btn" class="btn-secondary">⏹️ Stop</button>
       </div>
 
       <!-- Project Library -->
@@ -218,6 +218,17 @@
         <a href="https://www.codedex.io/" target="_blank">Codédex</a>
       </p>
     </footer>
+
+    <!-- Sticky Playback Controls -->
+    <div id="sticky-controls" class="sticky-controls" aria-live="polite">
+      <div class="sticky-left">
+        <span id="sticky-label" class="sticky-label">Ready</span>
+      </div>
+      <div class="sticky-right">
+        <button id="sticky-pause" class="btn-secondary" type="button" disabled>⏸️ Pause</button>
+        <button id="sticky-stop" class="btn-secondary" type="button" disabled>⏹️ Stop</button>
+      </div>
+    </div>
 
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
   </body>

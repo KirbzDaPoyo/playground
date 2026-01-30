@@ -393,3 +393,53 @@ input[type="text"]:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* Sticky Playback Controls */
+.sticky-controls {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 9999;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+}
+
+.sticky-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.sticky-label {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45vw;
+}
+
+.sticky-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sticky-right button {
+  padding: 0.75rem 1rem;
+}
+
+.sticky-controls.hidden {
+  display: none;
+}
+
+/* Give the page breathing room so the sticky bar doesn't cover content */
+body {
+  padding-bottom: 5.5rem;
+}

@@ -1,18 +1,3 @@
-4) Queue + Chapters
-
-Let users split text into chunks and manage playback like a playlist:
-
-Auto-split by paragraphs or punctuation.
-
-Show “Now reading: Chapter 3/8”
-
-Next/Previous chunk controls
-
-Resume from last chunk
-
-This is a “podcast player for text” vibe.
-
-Polish features that recruiters notice
 5) Keyboard controls + accessibility
 
 Space: pause/resume
