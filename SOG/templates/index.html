@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Speaker of God</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   </head>
   <body>
     <!-- Header -->
@@ -141,6 +141,34 @@
         <div id="project-meta" class="project-meta"></div>
       </div>
 
+      <!-- Export Audio (Flask + ElevenLabs) -->
+      <div class="card">
+        <div class="project-header">
+          <strong>Export Audio</strong>
+        </div>
+
+        <div class="project-grid">
+          <div class="control-group">
+            <label for="export-format">Format</label>
+            <select id="export-format">
+              <option value="mp3_44100_128">MP3 (44.1kHz, 128kbps)</option>
+              <option value="wav">WAV</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="export-voice-id">ElevenLabs Voice ID (optional)</label>
+            <input id="export-voice-id" type="text" placeholder="Leave blank to use server default" />
+          </div>
+        </div>
+
+        <div class="project-actions">
+          <button id="export-btn" class="btn-primary" type="button">⬇️ Export audio</button>
+        </div>
+
+        <div id="export-status" class="project-meta"></div>
+      </div>
+
       <!-- Status Indicator -->
       <div id="status" class="status">
         <span class="status-dot"></span>
@@ -156,6 +184,6 @@
       </p>
     </footer>
 
-    <script src="app.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
   </body>
 </html>

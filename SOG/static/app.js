@@ -26,6 +26,10 @@ const projectSelect = document.getElementById("project-select");
 const projectSearch = document.getElementById("project-search");
 const projectTagsPreview = document.getElementById("project-tags-preview");
 const projectMeta = document.getElementById("project-meta");
+const exportBtn = document.getElementById("export-btn");
+const exportFormat = document.getElementById("export-format");
+const exportVoiceId = document.getElementById("export-voice-id");
+const exportStatus = document.getElementById("export-status");
 
 // Web Speech API
 const synth = window.speechSynthesis;
@@ -478,6 +482,58 @@ function stop() {
 
 }
 
+// Export audio using ElevenLabs TTS API
+async function exportAudio() {
+  const text = textInput.value.trim();
+  if (!text) {
+    alert("Please enter some text to export.");
+    return;
+  }
+
+  exportBtn.disabled = true;
+  exportStatus.textContent = "Generating audio...";
+
+  try {
+    const payload = {
+      text,
+      output_format: exportFormat.value,
+    };
+
+    const voiceId = exportVoiceId.value.trim();
+    if (voiceId) payload.voice_id = voiceId;
+
+    const resp = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(err || `HTTP ${resp.status}`);
+    }
+
+    const blob = await resp.blob();
+    const isWav = exportFormat.value.startsWith("wav") || exportFormat.value === "wav";
+    const filename = `tts-${Date.now()}.${isWav ? "wav" : "mp3"}`;
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+
+    exportStatus.textContent = `Downloaded: ${filename}`;
+  } catch (e) {
+    console.error(e);
+    exportStatus.textContent = "Export failed. Check Flask console output and your ElevenLabs key.";
+  } finally {
+    exportBtn.disabled = false;
+  }
+}
+
 // Initialize the app
 // Set up all event listeners when DOM is ready
 function init() {
@@ -520,6 +576,9 @@ function init() {
   projectTags.addEventListener("input", () => {
     renderTagChips(normalizeTags(projectTags.value));
   });
+
+  // Export audio button
+  if (exportBtn) exportBtn.addEventListener("click", exportAudio);
 }
 
 // Initialize when DOM is ready
