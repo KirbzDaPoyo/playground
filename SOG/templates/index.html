@@ -14,200 +14,208 @@
 
     <!-- Main Container -->
     <div class="container">
-      <!-- Instructions -->
-      <div class="card instructions">
-        <h3>How to use:</h3>
-        <ol>
-          <li>Type or paste your text below</li>
-          <li>Select a voice from the dropdown</li>
-          <li>Adjust speed and pitch if desired</li>
-          <li>Click "Speak" to hear it!</li>
-        </ol>
-      </div>
+      <div class="layout">
+        <div class="left-col">
+          <!-- Instructions -->
+          <div class="card instructions">
+            <h3>How to use:</h3>
+            <ol>
+              <li>Type or paste your text below</li>
+              <li>Select a voice from the dropdown</li>
+              <li>Adjust speed and pitch if desired</li>
+              <li>Click "Speak" to hear it!</li>
+            </ol>
+          </div>
 
-      <!-- Text Input -->
-      <div class="card">
-        <label for="text-input">
-          <strong>Your Text</strong>
-          <span class="char-counter">
-            <span id="char-count">0</span> characters
-          </span>
-        </label>
-        <textarea
-          id="text-input"
-          placeholder="Enter text to convert to speech..."
-          rows="8"
-        ></textarea>
-      </div>
+          <!-- Text Input -->
+          <div class="card">
+            <label for="text-input">
+              <strong>Your Text</strong>
+              <span class="char-counter">
+                <span id="char-count">0</span> characters
+              </span>
+            </label>
+            <textarea
+              id="text-input"
+              placeholder="Enter text to convert to speech..."
+              rows="8"
+            ></textarea>
+          </div>
 
-      <!-- Live Highlight Preview -->
-      <div class="card">
-        <label>
-          <strong>Live Highlight</strong>
-        </label>
-        <div id="highlight-output" class="highlight-output" aria-live="polite"></div>
-      </div>
+          <!-- Live Highlight Preview -->
+          <div class="card">
+            <label>
+              <strong>Live Highlight</strong>
+            </label>
+            <div id="highlight-output" class="highlight-output" aria-live="polite"></div>
+          </div>
 
-      <!-- Voice Selection -->
-      <div class="card">
-        <label for="voice-select">
-          <strong>Voice</strong>
-        </label>
-        <select id="voice-select">
-          <option value="">Loading voices...</option>
-        </select>
-      </div>
-
-      <!-- Controls -->
-      <div class="card controls-grid">
-        <!-- Speed Control -->
-        <div class="control-group">
-          <label for="speed-slider">
-            Speed: <span id="speed-value">1.0</span>x
-          </label>
-          <input
-            type="range"
-            id="speed-slider"
-            min="0.5"
-            max="2"
-            step="0.1"
-            value="1"
-          />
+          <!-- Status Indicator -->
+          <div id="status" class="status">
+            <span class="status-dot"></span>
+            <span id="status-text">Ready</span>
+          </div>
         </div>
 
-        <!-- Pitch Control -->
-        <div class="control-group">
-          <label for="pitch-slider">
-            Pitch: <span id="pitch-value">1.0</span>
-          </label>
-          <input
-            type="range"
-            id="pitch-slider"
-            min="0"
-            max="2"
-            step="0.1"
-            value="1"
-          />
-        </div>
-      </div>
-      
-      <!-- Action Buttons -->
-      <div class="button-group">
-        <button id="speak-btn" class="btn-primary">🔊 Speak</button>
-        <button id="pause-btn" class="btn-secondary" disabled>⏸️ Pause</button>
-        <button id="stop-btn" class="btn-secondary">⏹️ Stop</button>
-      </div>
-
-      <!-- Queue + Chapters -->
-      <div class="card">
-        <div class="project-header">
-          <strong>Queue + Chapters</strong>
-          <span class="project-hint">Split text and play like a playlist</span>
-        </div>
-
-        <div class="project-grid">
-          <div class="control-group">
-            <label for="split-mode">Split mode</label>
-            <select id="split-mode">
-              <option value="paragraph">Paragraphs</option>
-              <option value="punctuation">Sentences (punctuation)</option>
+        <div class="right-col">
+          <!-- Voice Selection -->
+          <div class="card">
+            <label for="voice-select">
+              <strong>Voice</strong>
+            </label>
+            <select id="voice-select">
+              <option value="">Loading voices...</option>
             </select>
           </div>
 
-          <div class="control-group">
-            <label for="max-chunk">Max chunk length</label>
-            <input id="max-chunk" type="text" value="350" />
-          </div>
-        </div>
+          <!-- Controls -->
+          <div class="card controls-grid">
+            <!-- Speed Control -->
+            <div class="control-group">
+              <label for="speed-slider">
+                Speed: <span id="speed-value">1.0</span>x
+              </label>
+              <input
+                type="range"
+                id="speed-slider"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value="1"
+              />
+            </div>
 
-        <div class="project-actions">
-          <button id="split-btn" class="btn-secondary" type="button">✂️ Split</button>
-          <button id="queue-prev" class="btn-secondary" type="button" disabled>⏮️ Prev</button>
-          <button id="queue-next" class="btn-secondary" type="button" disabled>⏭️ Next</button>
-        </div>
-
-        <div class="project-actions">
-          <button id="queue-play" class="btn-primary" type="button" disabled>▶️ Play queue</button>
-          <button id="queue-stop" class="btn-secondary" type="button" disabled>⏹️ Stop queue</button>
-        </div>
-
-        <div id="queue-status" class="project-meta"></div>
-      </div>
-
-      <!-- Project Library -->
-      <div class="card">
-        <div class="project-header">
-          <strong>Project Library</strong>
-          <span class="project-hint">Save scripts + settings for later</span>
-        </div>
-
-        <div class="project-grid">
-          <div class="control-group">
-            <label for="project-title">Title</label>
-            <input id="project-title" type="text" placeholder="e.g., Sera's Confession" />
-          </div>
-
-          <div class="control-group">
-            <label for="project-tags">Tags</label>
-            <input id="project-tags" type="text" placeholder="comma-separated (e.g., rehearsal, jp, study)" />
-          </div>
-        </div>
-
-        <div class="project-actions">
-          <button id="new-project-btn" class="btn-secondary" type="button">🧾 New</button>
-          <button id="save-project-btn" class="btn-primary" type="button">💾 Save</button>
-          <button id="delete-project-btn" class="btn-secondary" type="button" disabled>🗑️ Delete</button>
-        </div>
-
-        <div class="project-grid">
-          <div class="control-group">
-            <label for="project-search">Search</label>
-            <input id="project-search" type="text" placeholder="filter by title or tag..." />
-          </div>
-
-          <div class="control-group">
-            <label for="project-select">Load</label>
-            <select id="project-select">
-              <option value="">No saved projects yet</option>
-            </select>
-          </div>
-        </div>
-
-        <div id="project-tags-preview" class="tag-row" aria-live="polite"></div>
-        <div id="project-meta" class="project-meta"></div>
-      </div>
-
-      <!-- Export Audio (Flask + ElevenLabs) -->
-      <div class="card">
-        <div class="project-header">
-          <strong>Export Audio</strong>
-        </div>
-
-        <div class="project-grid">
-          <div class="control-group">
-            <label for="export-format">Format</label>
-            <select id="export-format">
-              <option value="mp3_44100_128">MP3 (44.1kHz, 128kbps)</option>
-              <option value="wav">WAV</option>
-            </select>
+            <!-- Pitch Control -->
+            <div class="control-group">
+              <label for="pitch-slider">
+                Pitch: <span id="pitch-value">1.0</span>
+              </label>
+              <input
+                type="range"
+                id="pitch-slider"
+                min="0"
+                max="2"
+                step="0.1"
+                value="1"
+              />
+            </div>
           </div>
           
-          <p class="project-hint">
-            Uses my default ElevenLabs voice.
-          </p>
+          <!-- Action Buttons -->
+          <div class="card">
+            <div class="button-group">
+              <button id="speak-btn" class="btn-primary">🔊 Speak</button>
+              <button id="pause-btn" class="btn-secondary" disabled>⏸️ Pause</button>
+              <button id="stop-btn" class="btn-secondary">⏹️ Stop</button>
+            </div>
+          </div>
+
+          <!-- Queue + Chapters -->
+          <div class="card">
+            <div class="project-header">
+              <strong>Queue + Chapters</strong>
+              <span class="project-hint">Split text and play like a playlist</span>
+            </div>
+
+            <div class="project-grid">
+              <div class="control-group">
+                <label for="split-mode">Split mode</label>
+                <select id="split-mode">
+                  <option value="paragraph">Paragraphs</option>
+                  <option value="punctuation">Sentences (punctuation)</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="max-chunk">Max chunk length</label>
+                <input id="max-chunk" type="text" value="350" />
+              </div>
+            </div>
+
+            <div class="project-actions">
+              <button id="split-btn" class="btn-secondary" type="button">✂️ Split</button>
+              <button id="queue-prev" class="btn-secondary" type="button" disabled>⏮️ Prev</button>
+              <button id="queue-next" class="btn-secondary" type="button" disabled>⏭️ Next</button>
+            </div>
+
+            <div class="project-actions">
+              <button id="queue-play" class="btn-primary" type="button" disabled>▶️ Play queue</button>
+              <button id="queue-stop" class="btn-secondary" type="button" disabled>⏹️ Stop queue</button>
+            </div>
+
+            <div id="queue-status" class="project-meta"></div>
+          </div>
+
+          <!-- Project Library -->
+          <div class="card">
+            <div class="project-header">
+              <strong>Project Library</strong>
+              <span class="project-hint">Save scripts + settings for later</span>
+            </div>
+
+            <div class="project-grid">
+              <div class="control-group">
+                <label for="project-title">Title</label>
+                <input id="project-title" type="text" placeholder="e.g., Sera's Confession" />
+              </div>
+
+              <div class="control-group">
+                <label for="project-tags">Tags</label>
+                <input id="project-tags" type="text" placeholder="comma-separated (e.g., rehearsal, jp, study)" />
+              </div>
+            </div>
+
+            <div class="project-actions">
+              <button id="new-project-btn" class="btn-secondary" type="button">🧾 New</button>
+              <button id="save-project-btn" class="btn-primary" type="button">💾 Save</button>
+              <button id="delete-project-btn" class="btn-secondary" type="button" disabled>🗑️ Delete</button>
+            </div>
+
+            <div class="project-grid">
+              <div class="control-group">
+                <label for="project-search">Search</label>
+                <input id="project-search" type="text" placeholder="filter by title or tag..." />
+              </div>
+
+              <div class="control-group">
+                <label for="project-select">Load</label>
+                <select id="project-select">
+                  <option value="">No saved projects yet</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="project-tags-preview" class="tag-row" aria-live="polite"></div>
+            <div id="project-meta" class="project-meta"></div>
+          </div>
+
+          <!-- Export Audio (Flask + ElevenLabs) -->
+          <div class="card">
+            <div class="project-header">
+              <strong>Export Audio</strong>
+            </div>
+
+            <div class="project-grid">
+              <div class="control-group">
+                <label for="export-format">Format</label>
+                <select id="export-format">
+                  <option value="mp3_44100_128">MP3 (44.1kHz, 128kbps)</option>
+                  <option value="wav">WAV</option>
+                </select>
+              </div>
+              
+              <p class="project-hint">
+                Uses my default ElevenLabs voice.
+              </p>
+            </div>
+
+            <div class="project-actions">
+              <button id="export-btn" class="btn-primary" type="button">⬇️ Export audio</button>
+            </div>
+
+            <div id="export-status" class="project-meta"></div>
+          </div>
         </div>
-
-        <div class="project-actions">
-          <button id="export-btn" class="btn-primary" type="button">⬇️ Export audio</button>
-        </div>
-
-        <div id="export-status" class="project-meta"></div>
-      </div>
-
-      <!-- Status Indicator -->
-      <div id="status" class="status">
-        <span class="status-dot"></span>
-        <span id="status-text">Ready</span>
       </div>
     </div>
 
