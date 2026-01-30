@@ -28,7 +28,6 @@ const projectTagsPreview = document.getElementById("project-tags-preview");
 const projectMeta = document.getElementById("project-meta");
 const exportBtn = document.getElementById("export-btn");
 const exportFormat = document.getElementById("export-format");
-const exportVoiceId = document.getElementById("export-voice-id");
 const exportStatus = document.getElementById("export-status");
 
 // Web Speech API
@@ -498,9 +497,6 @@ async function exportAudio() {
       text,
       output_format: exportFormat.value,
     };
-
-    const voiceId = exportVoiceId.value.trim();
-    if (voiceId) payload.voice_id = voiceId;
 
     const resp = await fetch("/api/tts", {
       method: "POST",
