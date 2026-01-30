@@ -29,6 +29,14 @@ const projectMeta = document.getElementById("project-meta");
 const exportBtn = document.getElementById("export-btn");
 const exportFormat = document.getElementById("export-format");
 const exportStatus = document.getElementById("export-status");
+const splitMode = document.getElementById("split-mode");
+const maxChunkInput = document.getElementById("max-chunk");
+const splitBtn = document.getElementById("split-btn");
+const queuePrevBtn = document.getElementById("queue-prev");
+const queueNextBtn = document.getElementById("queue-next");
+const queuePlayBtn = document.getElementById("queue-play");
+const queueStopBtn = document.getElementById("queue-stop");
+const queueStatus = document.getElementById("queue-status");
 
 // Web Speech API
 const synth = window.speechSynthesis;
@@ -40,6 +48,14 @@ let activeUtteranceToken = 0; // invalidates old callbacks on cancel/restart
 const PROJECTS_KEY = "tts_projects_v1";
 let projects = [];
 let activeProjectId = null;
+
+let chunks = [];
+let currentChunkIndex = 0;
+let queueAutoAdvance = true;
+let queueActive = false;
+
+// persists last position even without saving a project
+const QUEUE_STATE_KEY = "tts_queue_state_v1";
 
 // If voices load later, we can apply the saved voice once available
 let pendingVoiceMeta = null;
@@ -311,6 +327,261 @@ function deleteActiveProject() {
 }
 
 // ========================================
+// Queue Management
+// ========================================
+
+// Save the current queue state to localStorage
+function saveQueueState() {
+  try {
+    localStorage.setItem(
+      QUEUE_STATE_KEY,
+      JSON.stringify({
+        currentChunkIndex,
+        total: chunks.length,
+      })
+    );
+  } catch {}
+}
+
+// Load the queue state from localStorage
+function loadQueueState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(QUEUE_STATE_KEY) || "{}");
+    if (Number.isInteger(s.currentChunkIndex)) currentChunkIndex = s.currentChunkIndex;
+  } catch {}
+}
+
+// Clamp integer value within min/max, with fallback
+function clampInt(value, fallback, min = 50, max = 5000) {
+  const n = parseInt(value, 10);
+  if (Number.isNaN(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+// Split text into paragraphs
+function splitByParagraphs(text) {
+  return text
+    .split(/\n\s*\n+/)          // blank-line separated paragraphs
+    .map(t => t.trim())
+    .filter(Boolean);
+}
+
+// Split text by punctuation marks
+function splitByPunctuation(text) {
+  // Split into sentence-ish chunks while keeping punctuation.
+  // This is deliberately simple and robust.
+  const parts = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g);
+  return (parts || [])
+    .map(t => t.trim())
+    .filter(Boolean);
+}
+
+// Enforce maximum chunk length by hard-wrapping
+function enforceMaxChunkLength(list, maxLen) {
+  const out = [];
+  for (const item of list) {
+    if (item.length <= maxLen) {
+      out.push(item);
+      continue;
+    }
+    // Hard-wrap long chunks by character count
+    for (let i = 0; i < item.length; i += maxLen) {
+      const piece = item.slice(i, i + maxLen).trim();
+      if (piece) out.push(piece);
+    }
+  }
+  return out;
+}
+
+// Build the queue from the current text input
+function buildQueueFromText() {
+  const text = textInput.value.trim();
+  if (!text) {
+    chunks = [];
+    currentChunkIndex = 0;
+    updateQueueUI();
+    return;
+  }
+
+  const mode = splitMode?.value || "paragraph";
+  const maxLen = clampInt(maxChunkInput?.value, 350, 80, 2000);
+
+  let base = mode === "punctuation" ? splitByPunctuation(text) : splitByParagraphs(text);
+  base = enforceMaxChunkLength(base, maxLen);
+
+  chunks = base;
+  currentChunkIndex = Math.min(currentChunkIndex, Math.max(0, chunks.length - 1));
+
+  // restore last index (but don’t exceed)
+  loadQueueState();
+  currentChunkIndex = Math.min(currentChunkIndex, Math.max(0, chunks.length - 1));
+
+  updateQueueUI();
+}
+
+// Update the queue UI elements based on current state
+function updateQueueUI() {
+  const total = chunks.length;
+  const idx = currentChunkIndex;
+
+  if (queueStatus) {
+    if (total === 0) queueStatus.textContent = "No queue yet. Click Split to create chapters.";
+    else queueStatus.textContent = `Chapter ${idx + 1} / ${total}`;
+  }
+
+  const canNav = total > 0;
+  if (queuePrevBtn) queuePrevBtn.disabled = !canNav || idx <= 0;
+  if (queueNextBtn) queueNextBtn.disabled = !canNav || idx >= total - 1;
+
+  if (queuePlayBtn) queuePlayBtn.disabled = total === 0 || queueActive;
+  if (queueStopBtn) queueStopBtn.disabled = !queueActive;
+}
+
+// Speak a given text chunk with highlighting
+function speakText(text, { onEnd } = {}) {
+  if (!text) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  const selectedVoiceIndex = voiceSelect.value;
+  if (selectedVoiceIndex !== "") {
+    utterance.voice = voices[selectedVoiceIndex];
+  }
+
+  utterance.rate = parseFloat(speedSlider.value);
+  utterance.pitch = parseFloat(pitchSlider.value);
+  utterance.volume = 1.0;
+
+  const utteranceToken = ++activeUtteranceToken;
+  spokenTextSnapshot = text;
+  lastBoundaryIndex = -1;
+  renderPlainPreview(spokenTextSnapshot);
+
+  utterance.onboundary = (event) => {
+    if (utteranceToken !== activeUtteranceToken) return;
+    if (event.name && event.name !== "word") return;
+    if (typeof event.charIndex !== "number") return;
+
+    const idx = event.charIndex;
+    if (idx === lastBoundaryIndex) return;
+    lastBoundaryIndex = idx;
+
+    let start = idx;
+    let end = idx;
+
+    if (typeof event.charLength === "number" && event.charLength > 0) {
+      end = idx + event.charLength;
+    } else {
+      const range = guessWordRange(spokenTextSnapshot, idx);
+      start = range.start;
+      end = range.end;
+    }
+
+    renderHighlightRange(spokenTextSnapshot, start, end);
+  };
+
+  utterance.onstart = () => {
+    status.classList.add("speaking");
+    statusText.textContent = queueActive ? "Playing queue..." : "Speaking...";
+    speakBtn.disabled = true;
+    stopBtn.disabled = false;
+    pauseBtn.disabled = false;
+    pauseBtn.textContent = "⏸️ Pause";
+    status.classList.remove("paused");
+  };
+
+  utterance.onend = () => {
+    status.classList.remove("speaking");
+    statusText.textContent = queueActive ? "Queue paused" : "Ready";
+    speakBtn.disabled = false;
+    stopBtn.disabled = true;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = "⏸️ Pause";
+    status.classList.remove("paused");
+    resetHighlightToCurrentText();
+    if (typeof onEnd === "function") onEnd();
+  };
+
+  utterance.onerror = (event) => {
+    console.error("Speech synthesis error:", event);
+    statusText.textContent = "Error occurred.";
+    speakBtn.disabled = false;
+    stopBtn.disabled = true;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = "⏸️ Pause";
+    status.classList.remove("paused");
+    resetHighlightToCurrentText();
+    // stop queue on error
+    if (queueActive) stopQueue();
+  };
+
+  if (synth.speaking) synth.cancel();
+  synth.speak(utterance);
+}
+
+// Play the queue from the current chunk
+function playQueue() {
+  if (chunks.length === 0) return;
+
+  queueActive = true;
+  updateQueueUI();
+
+  const playCurrent = () => {
+    if (!queueActive) return;
+
+    const text = chunks[currentChunkIndex] || "";
+    saveQueueState();
+    updateQueueUI();
+
+    speakText(text, {
+      onEnd: () => {
+        if (!queueActive) return;
+        if (!queueAutoAdvance) return;
+
+        if (currentChunkIndex < chunks.length - 1) {
+          currentChunkIndex += 1;
+          playCurrent();
+        } else {
+          // finished
+          queueActive = false;
+          updateQueueUI();
+          if (queueStatus) queueStatus.textContent = `Finished ${chunks.length} / ${chunks.length}`;
+        }
+      },
+    });
+  };
+
+  playCurrent();
+}
+
+// Stop the queue playback
+function stopQueue() {
+  queueActive = false;
+  synth.cancel();
+  activeUtteranceToken += 1;
+  resetHighlightToCurrentText();
+  updateQueueUI();
+}
+
+// Navigate to previous chunk
+function prevChunk() {
+  if (chunks.length === 0) return;
+  currentChunkIndex = Math.max(0, currentChunkIndex - 1);
+  saveQueueState();
+  updateQueueUI();
+  if (queueActive) playQueue();
+}
+
+// Navigate to next chunk
+function nextChunk() {
+  if (chunks.length === 0) return;
+  currentChunkIndex = Math.min(chunks.length - 1, currentChunkIndex + 1);
+  saveQueueState();
+  updateQueueUI();
+  if (queueActive) playQueue();
+}
+
+// ========================================
 // Text-to-Speech Functionality
 // ========================================
 
@@ -468,6 +739,7 @@ function togglePause() {
 
 // Stop speaking and cancel any ongoing speech
 function stop() {
+  if (queueActive) stopQueue();
   synth.cancel();
   activeUtteranceToken += 1; // invalidate any pending boundary/end callbacks
   resetHighlightToCurrentText();
@@ -572,6 +844,15 @@ function init() {
   projectTags.addEventListener("input", () => {
     renderTagChips(normalizeTags(projectTags.value));
   });
+
+  // Queue + Chapters
+  if (splitBtn) splitBtn.addEventListener("click", buildQueueFromText);
+  if (queuePlayBtn) queuePlayBtn.addEventListener("click", playQueue);
+  if (queueStopBtn) queueStopBtn.addEventListener("click", stopQueue);
+  if (queuePrevBtn) queuePrevBtn.addEventListener("click", prevChunk);
+  if (queueNextBtn) queueNextBtn.addEventListener("click", nextChunk);
+
+  updateQueueUI();
 
   // Export audio button
   if (exportBtn) exportBtn.addEventListener("click", exportAudio);

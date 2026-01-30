@@ -90,6 +90,42 @@
           />
         </div>
       </div>
+      
+      <!-- Queue + Chapters -->
+      <div class="card">
+        <div class="project-header">
+          <strong>Queue + Chapters</strong>
+          <span class="project-hint">Split text and play like a playlist</span>
+        </div>
+
+        <div class="project-grid">
+          <div class="control-group">
+            <label for="split-mode">Split mode</label>
+            <select id="split-mode">
+              <option value="paragraph">Paragraphs</option>
+              <option value="punctuation">Sentences (punctuation)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="max-chunk">Max chunk length</label>
+            <input id="max-chunk" type="text" value="350" />
+          </div>
+        </div>
+
+        <div class="project-actions">
+          <button id="split-btn" class="btn-secondary" type="button">✂️ Split</button>
+          <button id="queue-prev" class="btn-secondary" type="button" disabled>⏮️ Prev</button>
+          <button id="queue-next" class="btn-secondary" type="button" disabled>⏭️ Next</button>
+        </div>
+
+        <div class="project-actions">
+          <button id="queue-play" class="btn-primary" type="button" disabled>▶️ Play queue</button>
+          <button id="queue-stop" class="btn-secondary" type="button" disabled>⏹️ Stop queue</button>
+        </div>
+
+        <div id="queue-status" class="project-meta"></div>
+      </div>
 
       <!-- Action Buttons -->
       <div class="button-group">
