@@ -1,88 +1,89 @@
-# Text-to-Speech App - Starter Files
+4) Queue + Chapters
 
-Build a text-to-speech app using the browser's built-in Web Speech API. No backend required!
+Let users split text into chunks and manage playback like a playlist:
 
-## What You'll Build
+Auto-split by paragraphs or punctuation.
 
-A web app that converts text to speech with:
+Show “Now reading: Chapter 3/8”
 
-- Voice selection from available system voices
-- Speed and pitch controls
-- Character counter
-- Play/Stop functionality
-- Status indicator
+Next/Previous chunk controls
 
-Start with the provided starter files in [starter/](./starter/) and implement the missing functionality in `app.js`.
+Resume from last chunk
 
-## Files Included
+This is a “podcast player for text” vibe.
 
-- **index.html** - Complete UI structure (ready to use)
-- **style.css** - Complete styling with dark theme (ready to use)
-- **app.js** - Starter code with TODOs for you to implement
+Polish features that recruiters notice
+5) Keyboard controls + accessibility
 
-## Getting Started
+Space: pause/resume
 
-1. Open `index.html` in your browser
-2. Open `app.js` in your code editor
-3. Follow the TODO comments to implement each function
-4. Refresh the browser to test your changes
+Ctrl+Enter: speak
 
-## What to Implement
+Esc: stop
 
-The `app.js` file has TODO comments guiding you through:
+ARIA live region announcements for status
 
-### Step 3: Load Available Voices
+Respect “prefers-reduced-motion” for animations
 
-Implement `loadVoices()` to:
+This signals professional care.
 
-- Get voices from `synth.getVoices()`
-- Populate the dropdown with voice options
-- Handle async voice loading with `voiceschanged` event
+6) Voice diagnostics panel
 
-### Step 4: Character Counter
+Add a collapsible “Voice Debug” section:
 
-Implement `updateCharCount()` to:
+Browser, platform
 
-- Count characters in the text input
-- Update the display
+Number of voices loaded
 
-### Step 5: Speech Synthesis
+Whether onboundary exists
 
-Implement `speak()` to:
+Whether pause/resume supported
 
-- Create a `SpeechSynthesisUtterance`
-- Configure voice, rate, and pitch
-- Handle start/end/error events
-- Update UI state
+Last error message
 
-### Initialize
+It turns support issues into a feature.
 
-Implement `init()` to:
+7) “Reading modes”
 
-- Set up all event listeners
-- Initialize displays
+Make it feel authored:
 
-## Testing
+Study mode: slow rate, short chunks, optional repeat
 
-1. Enter text in the textarea
-2. Select a voice from the dropdown
-3. Adjust speed and pitch sliders
-4. Click "Speak" to hear the text
-5. Click "Stop" to cancel speech
+Performance mode: faster, higher pitch? (or preset)
 
-## Key Concepts
+Accessibility mode: slower + larger font + strong contrast
 
-- **Web Speech API** - Browser's built-in speech synthesis
-- **SpeechSynthesisUtterance** - Object representing text to speak
-- **Events** - onstart, onend, onerror for UI updates
-- **Async loading** - Voices load asynchronously in Chrome
+One-click presets, but still editable.
 
-## Resources
+More creative directions (make it your project)
+8) “Director Mode” for dramatic readings 🎭
 
-- [Web Speech API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
-- [SpeechSynthesis (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis)
-- [SpeechSynthesisUtterance (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisUtterance)
+Since you’re into performance stuff:
 
-## Need Help?
+Add character “voices” per paragraph (choose a voice per character name)
 
-Check the [completed](./completed/) directory for the full working implementation.
+Auto-detect dialogue like NAME: lines and swap voices
+
+Add stage-direction whisper mode (lower volume/rate for bracketed text)
+
+This is unique and memorable.
+
+9) Language learning overlay
+
+Split text into sentences
+
+Repeat sentence button
+
+“Shadowing timer” (countdown before speaking so user repeats)
+
+Optional phonetic helper line (manual, not auto-translation)
+
+10) Proof-listen mode
+
+For writers:
+
+Auto-insert pauses at commas/periods
+
+Highlight punctuation issues (“too many commas in a row”)
+
+Button: “Read back with longer pauses” to catch rhythm
